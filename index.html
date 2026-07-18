@@ -15,7 +15,9 @@
     background: #fff; padding: 10px 14px; border-bottom: 1px solid #e3e5e8;
     position: sticky; top: 0; z-index: 1000;
   }
-  h1 { font-size: 17px; margin-bottom: 8px; }
+  .titlerow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  h1 { font-size: 17px; }
+  #settingsBtn { font-size: 18px; background: none; border: none; cursor: pointer; }
   .searchrow { display: flex; gap: 6px; margin-bottom: 8px; }
   .searchrow input {
     flex: 1; font-size: 15px; padding: 8px 12px; border-radius: 8px;
@@ -38,7 +40,15 @@
   }
   .chip input { accent-color: #1668dc; }
   .chip:has(input:checked) { background: #e6f0ff; border-color: #1668dc; color: #0d4fb0; }
-  #map { height: 42vh; min-height: 260px; }
+  #map { height: 40vh; min-height: 240px; }
+  .addbar {
+    background: #fff; padding: 6px 14px; border-bottom: 1px solid #e3e5e8;
+    display: flex; justify-content: flex-end;
+  }
+  .addbar button {
+    font-size: 12px; padding: 5px 10px; border-radius: 8px;
+    border: 1px dashed #1668dc; color: #0d4fb0; background: #fff; cursor: pointer;
+  }
   #status {
     padding: 8px 14px; font-size: 13px; color: #555;
     background: #fff; border-bottom: 1px solid #e3e5e8;
@@ -49,6 +59,7 @@
     background: #fff; border-radius: 12px; padding: 12px 14px;
     box-shadow: 0 1px 2px rgba(0,0,0,.06);
   }
+  .card.mine { border: 1.5px solid #1668dc; }
   .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
   .name { font-weight: 700; font-size: 15px; }
   .dist { font-size: 13px; color: #666; white-space: nowrap; }
@@ -60,11 +71,18 @@
   .badge.b24 { background: #d1fae5; color: #047857; font-weight: 600; }
   .badge.free { background: #dbeafe; color: #1d4ed8; font-weight: 600; }
   .badge.customers { background: #fef3c7; color: #92400e; }
+  .badge.mine { background: #1668dc; color: #fff; font-weight: 600; }
   .fee { font-size: 14px; margin: 4px 0 8px; }
   .fee.has { color: #0d4fb0; font-weight: 700; }
   .fee.unknown { color: #999; font-size: 13px; }
-  .card a {
-    font-size: 13px; color: #1668dc; text-decoration: none; font-weight: 600;
+  .myfees { margin: 4px 0 8px; padding: 8px 10px; background: #f0f6ff; border-radius: 8px; font-size: 13px; }
+  .myfees .main { font-size: 15px; font-weight: 700; color: #0d4fb0; }
+  .myfees div { margin: 1px 0; }
+  .cardactions { display: flex; justify-content: space-between; align-items: center; }
+  .card a { font-size: 13px; color: #1668dc; text-decoration: none; font-weight: 600; }
+  .regbtn {
+    font-size: 12px; padding: 5px 10px; border-radius: 8px;
+    border: 1px solid #d0d3d8; background: #fff; color: #444; cursor: pointer;
   }
   .empty { text-align: center; color: #888; padding: 30px 10px; font-size: 14px; }
   .spinner {
@@ -73,11 +91,43 @@
     animation: spin .8s linear infinite; vertical-align: -2px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .modalbg {
+    position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 2000;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .modalbg[hidden] { display: none; }
+  .modal {
+    background: #fff; width: 100%; max-width: 560px; max-height: 88vh; overflow-y: auto;
+    border-radius: 16px 16px 0 0; padding: 18px 16px 28px;
+  }
+  .modal h2 { font-size: 16px; margin-bottom: 12px; }
+  .modal label { display: block; font-size: 12px; color: #555; margin: 10px 0; }
+  .modal input[type="text"], .modal input[type="number"], .modal input[type="password"] {
+    display: block; width: 100%; font-size: 15px; padding: 8px 10px; margin-top: 4px;
+    border: 1px solid #d0d3d8; border-radius: 8px; -webkit-appearance: none;
+  }
+  .modal label.chk { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #1a1d21; }
+  .modal .hint { font-size: 11px; color: #888; margin: 6px 0; }
+  .photoBtn {
+    display: inline-block; padding: 10px 14px; border-radius: 10px; cursor: pointer;
+    background: #e6f0ff; color: #0d4fb0; font-weight: 600; font-size: 14px !important;
+  }
+  #aiStatus { font-size: 12px; color: #b45309; margin-left: 8px; }
+  .modalBtns { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
+  .modalBtns button, .modalBtns .filelabel {
+    font-size: 14px; padding: 9px 16px; border-radius: 10px; cursor: pointer;
+    border: 1px solid #d0d3d8; background: #fff;
+  }
+  .modalBtns .primary { background: #1668dc; color: #fff; border-color: #1668dc; font-weight: 600; }
+  .modalBtns .danger { color: #b91c1c; border-color: #fca5a5; }
 </style>
 </head>
 <body>
 <header>
-  <h1>🅿️ パーキングさがす</h1>
+  <div class="titlerow">
+    <h1>🅿️ パーキングさがす</h1>
+    <button id="settingsBtn" title="設定">⚙️</button>
+  </div>
   <div class="searchrow">
     <input id="placeInput" type="search" placeholder="駅名・住所で検索（例: 渋谷駅）">
     <button id="searchBtn">検索</button>
@@ -90,13 +140,65 @@
       <option value="1000">半径1km</option>
       <option value="2000">半径2km</option>
     </select>
+    <select id="sortMode">
+      <option value="dist">近い順</option>
+      <option value="price">安い順（登録分優先）</option>
+    </select>
     <label class="chip"><input type="checkbox" id="only24">24時間出庫可のみ</label>
     <label class="chip"><input type="checkbox" id="onlyFee">料金情報ありのみ</label>
   </div>
 </header>
 <div id="map"></div>
+<div class="addbar"><button id="addCustomBtn">＋ ピンの位置に駐車場を手動追加</button></div>
 <div id="status">地図をタップするとその場所で再検索します</div>
 <main id="list"></main>
+
+<div id="modalBg" class="modalbg" hidden>
+  <div class="modal">
+    <h2 id="modalTitle">料金を登録</h2>
+    <label class="photoBtn">📷 看板の写真からAIで自動入力
+      <input type="file" id="signPhoto" accept="image/*" capture="environment" hidden>
+    </label><span id="aiStatus"></span>
+    <label>名称
+      <input type="text" id="fName" placeholder="例: タイムズ○○第2"></label>
+    <label>通常料金
+      <input type="text" id="fPrice" placeholder="例: 平日 ¥200/30分"></label>
+    <label>最大料金
+      <input type="text" id="fMax" placeholder="例: 24時間最大 ¥1,100"></label>
+    <label>夜間料金
+      <input type="text" id="fNight" placeholder="例: 20:00〜8:00 ¥100/60分"></label>
+    <label>昼間の1時間あたり目安（円）— 安い順ソートに使われます
+      <input type="number" id="fHourly" placeholder="例: 400"></label>
+    <label class="chk"><input type="checkbox" id="fOpen24"> 24時間出庫できる</label>
+    <label>メモ
+      <input type="text" id="fMemo" placeholder="例: 入口が狭い・機械が遅い"></label>
+    <div class="modalBtns">
+      <button id="mDelete" class="danger" hidden>削除</button>
+      <span style="flex:1"></span>
+      <button id="mCancel">キャンセル</button>
+      <button id="mSave" class="primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="settingsBg" class="modalbg" hidden>
+  <div class="modal">
+    <h2>⚙️ 設定</h2>
+    <label>Claude APIキー（AI看板読み取りに使用）
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..."></label>
+    <p class="hint">キーはこの端末のブラウザ内にのみ保存され、写真の送信先はAnthropic APIだけです。共有端末では保存しないでください。キーが無くても手入力で全機能使えます。</p>
+    <label>マイ料金データのバックアップ</label>
+    <div class="modalBtns" style="margin-top:4px">
+      <button id="sExport">書き出し</button>
+      <label class="filelabel">読み込み<input type="file" id="sImport" accept="application/json" hidden></label>
+    </div>
+    <div class="modalBtns">
+      <span style="flex:1"></span>
+      <button id="sClose">閉じる</button>
+      <button id="sSave" class="primary">保存</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -108,11 +210,23 @@ const OVERPASS_ENDPOINTS = [
 ];
 const FETCH_TIMEOUT_MS = 15000;
 const MAX_RESULTS = 80;
+const DB_KEY = 'myParkingData';
+const API_KEY_STORAGE = 'anthropicKey';
 
 let map, centerMarker, resultLayer;
 let spots = [];
+let shownSpots = [];
 // 検索や地図タップで手動指定した後は、遅れて届いた現在地取得の結果で上書きしない
 let userPicked = false;
+let editingSpotId = null;
+let editingCoords = null;
+
+// ---------- マイ料金DB ----------
+function loadDB() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+function myOf(spot) { return loadDB()[spot.id] || null; }
 
 function setStatus(html, notice = false) {
   const el = document.getElementById('status');
@@ -127,7 +241,6 @@ function initMap() {
   }).addTo(map);
   resultLayer = L.layerGroup().addTo(map);
   centerMarker = L.marker([FALLBACK.lat, FALLBACK.lon], { draggable: true }).addTo(map);
-  centerMarker.bindPopup('この場所の周辺を検索中');
   centerMarker.on('dragend', () => { userPicked = true; search(); });
   map.on('click', (e) => { userPicked = true; centerMarker.setLatLng(e.latlng); search(); });
 }
@@ -228,7 +341,7 @@ function hasFeeInfo(t) {
 
 async function search(keepStatus = false) {
   const { lat, lng } = centerMarker.getLatLng();
-  const radius = document.getElementById('radius').value;
+  const radius = Number(document.getElementById('radius').value);
   if (!keepStatus) setStatus('<span class="spinner"></span>周辺の駐車場を検索中…');
 
   const query = `[out:json][timeout:14];
@@ -243,11 +356,27 @@ out center tags;`;
     spots = data.elements
       .map((el) => {
         const p = el.center || el;
-        return { lat: p.lat, lon: p.lon, tags: el.tags || {}, dist: haversine(lat, lng, p.lat, p.lon) };
+        return {
+          id: `${el.type}/${el.id}`,
+          lat: p.lat, lon: p.lon,
+          tags: el.tags || {},
+          dist: haversine(lat, lng, p.lat, p.lon),
+        };
       })
-      .filter((s) => !['private', 'no'].includes(s.tags.access))
-      .sort((a, b) => a.dist - b.dist)
-      .slice(0, MAX_RESULTS);
+      .filter((s) => !['private', 'no'].includes(s.tags.access));
+
+    // 手動追加した駐車場（OSM未掲載）を検索範囲内なら合流させる
+    const db = loadDB();
+    for (const [id, e] of Object.entries(db)) {
+      if (!e.custom) continue;
+      const d = haversine(lat, lng, e.lat, e.lon);
+      if (d <= radius) {
+        spots.push({ id, lat: e.lat, lon: e.lon, tags: {}, dist: d, custom: true });
+      }
+    }
+
+    spots.sort((a, b) => a.dist - b.dist);
+    spots = spots.slice(0, MAX_RESULTS);
     render();
   } catch (e) {
     setStatus('検索に失敗しました。少し待ってから地図をタップして再検索してください（下の一覧は前回の検索結果です）', true);
@@ -257,48 +386,264 @@ out center tags;`;
 function render() {
   const only24 = document.getElementById('only24').checked;
   const onlyFee = document.getElementById('onlyFee').checked;
-  const shown = spots.filter((s) =>
-    (!only24 || is24h(s.tags)) && (!onlyFee || hasFeeInfo(s.tags)));
+  const sortMode = document.getElementById('sortMode').value;
+  const db = loadDB();
+
+  let shown = spots.filter((s) => {
+    const my = db[s.id];
+    const ok24 = is24h(s.tags) || (my && my.open24);
+    const okFee = hasFeeInfo(s.tags) || Boolean(my);
+    return (!only24 || ok24) && (!onlyFee || okFee);
+  });
+
+  if (sortMode === 'price') {
+    shown = shown.slice().sort((a, b) => {
+      const ma = db[a.id], mb = db[b.id];
+      const ha = (ma && ma.hourly != null && ma.hourly !== '') ? Number(ma.hourly) : Infinity;
+      const hb = (mb && mb.hourly != null && mb.hourly !== '') ? Number(mb.hourly) : Infinity;
+      if (ha !== hb) return ha - hb;
+      if (Boolean(ma) !== Boolean(mb)) return ma ? -1 : 1;
+      return a.dist - b.dist;
+    });
+  }
+  shownSpots = shown;
 
   resultLayer.clearLayers();
   const list = document.getElementById('list');
   list.innerHTML = '';
 
-  const radius = document.getElementById('radius').selectedOptions[0].text;
-  setStatus(`${shown.length}件見つかりました（${radius}・近い順）`);
+  const radiusText = document.getElementById('radius').selectedOptions[0].text;
+  const sortText = sortMode === 'price' ? '安い順' : '近い順';
+  setStatus(`${shown.length}件見つかりました（${radiusText}・${sortText}）`);
 
   if (!shown.length) {
     list.innerHTML = '<div class="empty">条件に合う駐車場が見つかりませんでした。<br>半径を広げるか、フィルタを外してみてください</div>';
     return;
   }
 
-  for (const s of shown) {
+  shown.forEach((s, i) => {
     const t = s.tags;
-    const name = t['name:ja'] || t.name || (t.operator ? `${t.operator}の駐車場` : '駐車場（名称未登録）');
-    const fee = feeInfo(t);
+    const my = db[s.id];
+    const name = (my && my.name) || t['name:ja'] || t.name
+      || (t.operator ? `${t.operator}の駐車場` : (s.custom ? 'マイ駐車場' : '駐車場（名称未登録）'));
     const distText = s.dist < 1000 ? `${Math.round(s.dist)}m` : `${(s.dist / 1000).toFixed(1)}km`;
 
     const badges = [];
-    if (is24h(t)) badges.push('<span class="badge b24">24時間出庫可</span>');
+    if (my) badges.push('<span class="badge mine">マイ登録</span>');
+    if (is24h(t) || (my && my.open24)) badges.push('<span class="badge b24">24時間出庫可</span>');
     else if (t.opening_hours) badges.push(`<span class="badge">営業: ${escapeHtml(t.opening_hours)}</span>`);
     if (t.fee === 'no') badges.push('<span class="badge free">無料</span>');
     if (t.access === 'customers') badges.push('<span class="badge customers">施設利用者向け</span>');
     if (t.capacity) badges.push(`<span class="badge">収容 ${escapeHtml(t.capacity)}台</span>`);
     if (t.operator) badges.push(`<span class="badge">${escapeHtml(t.operator)}</span>`);
 
+    let feeHtml;
+    if (my) {
+      const rows = [];
+      if (my.price) rows.push(`<div class="main">${escapeHtml(my.price)}</div>`);
+      if (my.maxPrice) rows.push(`<div>最大: ${escapeHtml(my.maxPrice)}</div>`);
+      if (my.night) rows.push(`<div>夜間: ${escapeHtml(my.night)}</div>`);
+      if (my.hourly != null && my.hourly !== '') rows.push(`<div>目安 ¥${escapeHtml(String(my.hourly))}/時</div>`);
+      if (my.memo) rows.push(`<div>📝 ${escapeHtml(my.memo)}</div>`);
+      feeHtml = `<div class="myfees">${rows.join('') || '<div>登録済み（詳細未入力）</div>'}</div>`;
+    } else {
+      const fee = feeInfo(t);
+      feeHtml = `<div class="fee ${fee.cls}">${escapeHtml(fee.text)}</div>`;
+    }
+
     const gmap = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = my ? 'card mine' : 'card';
     card.innerHTML = `
       <div class="row1"><span class="name">${escapeHtml(name)}</span><span class="dist">${distText}</span></div>
       <div class="badges">${badges.join('')}</div>
-      <div class="fee ${fee.cls}">${escapeHtml(fee.text)}</div>
-      <a href="${gmap}" target="_blank" rel="noopener">Googleマップで経路を見る →</a>`;
+      ${feeHtml}
+      <div class="cardactions">
+        <a href="${gmap}" target="_blank" rel="noopener">Googleマップで経路 →</a>
+        <button class="regbtn" data-idx="${i}">${my ? '✏️ 編集' : '💰 料金を登録'}</button>
+      </div>`;
+    card.querySelector('.regbtn').addEventListener('click', () => openRegModal(s));
     list.appendChild(card);
 
-    L.marker([s.lat, s.lon]).addTo(resultLayer)
-      .bindPopup(`<b>${escapeHtml(name)}</b><br>${escapeHtml(fee.text)}`);
+    const marker = my
+      ? L.circleMarker([s.lat, s.lon], { radius: 9, color: '#1668dc', fillColor: '#1668dc', fillOpacity: .85 })
+      : L.marker([s.lat, s.lon]);
+    marker.addTo(resultLayer).bindPopup(`<b>${escapeHtml(name)}</b><br>${my && my.price ? escapeHtml(my.price) : escapeHtml(feeInfo(t).text)}`);
+  });
+}
+
+// ---------- 登録モーダル ----------
+function openRegModal(spotOrNull) {
+  const db = loadDB();
+  if (spotOrNull) {
+    editingSpotId = spotOrNull.id;
+    editingCoords = { lat: spotOrNull.lat, lon: spotOrNull.lon, custom: Boolean(spotOrNull.custom) };
+  } else {
+    const { lat, lng } = centerMarker.getLatLng();
+    editingSpotId = `custom/${Date.now()}`;
+    editingCoords = { lat, lon: lng, custom: true };
   }
+  const my = db[editingSpotId] || {};
+  document.getElementById('modalTitle').textContent = db[editingSpotId] ? '料金を編集' : '料金を登録';
+  document.getElementById('fName').value = my.name || '';
+  document.getElementById('fPrice').value = my.price || '';
+  document.getElementById('fMax').value = my.maxPrice || '';
+  document.getElementById('fNight').value = my.night || '';
+  document.getElementById('fHourly').value = my.hourly != null ? my.hourly : '';
+  document.getElementById('fOpen24').checked = Boolean(my.open24);
+  document.getElementById('fMemo').value = my.memo || '';
+  document.getElementById('mDelete').hidden = !db[editingSpotId];
+  document.getElementById('aiStatus').textContent = '';
+  document.getElementById('modalBg').hidden = false;
+}
+
+function saveReg() {
+  const db = loadDB();
+  const hourlyRaw = document.getElementById('fHourly').value;
+  db[editingSpotId] = {
+    name: document.getElementById('fName').value.trim(),
+    price: document.getElementById('fPrice').value.trim(),
+    maxPrice: document.getElementById('fMax').value.trim(),
+    night: document.getElementById('fNight').value.trim(),
+    hourly: hourlyRaw === '' ? null : Number(hourlyRaw),
+    open24: document.getElementById('fOpen24').checked,
+    memo: document.getElementById('fMemo').value.trim(),
+    lat: editingCoords.lat, lon: editingCoords.lon,
+    custom: editingCoords.custom,
+    updated: new Date().toISOString().slice(0, 10),
+  };
+  saveDB(db);
+  document.getElementById('modalBg').hidden = true;
+  // 再取得はせず手元のデータで即再描画（手動追加分だけ一覧に合流させる）
+  if (editingCoords.custom && !spots.some((s) => s.id === editingSpotId)) {
+    const { lat, lng } = centerMarker.getLatLng();
+    spots.push({
+      id: editingSpotId, lat: editingCoords.lat, lon: editingCoords.lon,
+      tags: {}, dist: haversine(lat, lng, editingCoords.lat, editingCoords.lon), custom: true,
+    });
+    spots.sort((a, b) => a.dist - b.dist);
+  }
+  render();
+}
+
+function deleteReg() {
+  const db = loadDB();
+  delete db[editingSpotId];
+  saveDB(db);
+  spots = spots.filter((s) => !(s.custom && s.id === editingSpotId));
+  document.getElementById('modalBg').hidden = true;
+  render();
+}
+
+// ---------- AI看板読み取り ----------
+function resizeToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1568;
+      const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function aiReadSign(file) {
+  const key = localStorage.getItem(API_KEY_STORAGE);
+  const aiStatus = document.getElementById('aiStatus');
+  if (!key) {
+    aiStatus.textContent = '⚙️設定でAPIキーを保存すると使えます';
+    return;
+  }
+  aiStatus.innerHTML = '<span class="spinner"></span>AIが看板を読んでいます…';
+  try {
+    const b64 = await resizeToBase64(file);
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-5',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+            { type: 'text', text:
+`これは日本のコインパーキングの料金看板の写真です。看板から読み取れる内容を、次のJSONだけで返してください（説明文は不要）:
+{"name": "駐車場名（読めなければnull）",
+ "price": "通常料金の要約 例:平日 ¥200/30分",
+ "maxPrice": "最大料金の要約 例:24時間最大¥1,100（読めなければnull）",
+ "night": "夜間料金の要約（なければnull）",
+ "open24": 24時間出庫可能ならtrue、時間制限があればfalse、不明ならnull,
+ "hourly": 昼間の1時間あたり概算料金を円の数値で（例:400）。不明ならnull}
+読み取れない項目は無理に推測せずnullにしてください。` },
+          ],
+        }],
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err.error && err.error.message) || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    const text = data.content.map((c) => c.text || '').join('');
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) throw new Error('読み取り結果を解析できませんでした');
+    const r = JSON.parse(m[0]);
+    if (r.name) document.getElementById('fName').value = r.name;
+    if (r.price) document.getElementById('fPrice').value = r.price;
+    if (r.maxPrice) document.getElementById('fMax').value = r.maxPrice;
+    if (r.night) document.getElementById('fNight').value = r.night;
+    if (r.hourly != null) document.getElementById('fHourly').value = r.hourly;
+    if (r.open24 === true) document.getElementById('fOpen24').checked = true;
+    aiStatus.textContent = '✅ 読み取りました。内容を確認して保存してください';
+  } catch (e) {
+    aiStatus.textContent = `読み取り失敗: ${e.message}`;
+  }
+}
+
+// ---------- 設定 ----------
+function openSettings() {
+  document.getElementById('apiKeyInput').value = localStorage.getItem(API_KEY_STORAGE) || '';
+  document.getElementById('settingsBg').hidden = false;
+}
+function saveSettings() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (v) localStorage.setItem(API_KEY_STORAGE, v);
+  else localStorage.removeItem(API_KEY_STORAGE);
+  document.getElementById('settingsBg').hidden = true;
+}
+function exportData() {
+  const blob = new Blob([localStorage.getItem(DB_KEY) || '{}'], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'my-parking-data.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const incoming = JSON.parse(reader.result);
+      const db = { ...loadDB(), ...incoming };
+      saveDB(db);
+      alert(`読み込みました（合計 ${Object.keys(db).length} 件）`);
+      search(true);
+    } catch (e) { alert('読み込めませんでした。書き出したJSONファイルを選んでください'); }
+  };
+  reader.readAsText(file);
 }
 
 function escapeHtml(str) {
@@ -313,8 +658,25 @@ document.getElementById('placeInput').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') searchPlace();
 });
 document.getElementById('radius').addEventListener('change', () => search());
+document.getElementById('sortMode').addEventListener('change', render);
 document.getElementById('only24').addEventListener('change', render);
 document.getElementById('onlyFee').addEventListener('change', render);
+document.getElementById('addCustomBtn').addEventListener('click', () => openRegModal(null));
+document.getElementById('mSave').addEventListener('click', saveReg);
+document.getElementById('mCancel').addEventListener('click', () => { document.getElementById('modalBg').hidden = true; });
+document.getElementById('mDelete').addEventListener('click', deleteReg);
+document.getElementById('signPhoto').addEventListener('change', (e) => {
+  if (e.target.files[0]) aiReadSign(e.target.files[0]);
+  e.target.value = '';
+});
+document.getElementById('settingsBtn').addEventListener('click', openSettings);
+document.getElementById('sSave').addEventListener('click', saveSettings);
+document.getElementById('sClose').addEventListener('click', () => { document.getElementById('settingsBg').hidden = true; });
+document.getElementById('sExport').addEventListener('click', exportData);
+document.getElementById('sImport').addEventListener('change', (e) => {
+  if (e.target.files[0]) importData(e.target.files[0]);
+  e.target.value = '';
+});
 
 initMap();
 locate();
