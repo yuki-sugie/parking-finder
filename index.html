@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>パーキングさがす</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    background: #f4f5f7; color: #1a1d21;
+  }
+  header {
+    background: #fff; padding: 10px 14px; border-bottom: 1px solid #e3e5e8;
+    position: sticky; top: 0; z-index: 1000;
+  }
+  h1 { font-size: 17px; margin-bottom: 8px; }
+  .searchrow { display: flex; gap: 6px; margin-bottom: 8px; }
+  .searchrow input {
+    flex: 1; font-size: 15px; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid #d0d3d8; -webkit-appearance: none;
+  }
+  .searchrow button {
+    font-size: 14px; padding: 8px 14px; border-radius: 8px; border: none;
+    background: #1a1d21; color: #fff; font-weight: 600; cursor: pointer;
+  }
+  .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .controls button, .controls select {
+    font-size: 13px; padding: 6px 10px; border-radius: 8px;
+    border: 1px solid #d0d3d8; background: #fff; cursor: pointer;
+  }
+  #locateBtn { background: #1668dc; color: #fff; border-color: #1668dc; font-weight: 600; }
+  .chip {
+    font-size: 13px; padding: 6px 10px; border-radius: 999px;
+    border: 1px solid #d0d3d8; background: #fff; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px; user-select: none;
+  }
+  .chip input { accent-color: #1668dc; }
+  .chip:has(input:checked) { background: #e6f0ff; border-color: #1668dc; color: #0d4fb0; }
+  #map { height: 42vh; min-height: 260px; }
+  #status {
+    padding: 8px 14px; font-size: 13px; color: #555;
+    background: #fff; border-bottom: 1px solid #e3e5e8;
+  }
+  #status.notice { color: #b45309; }
+  #list { padding: 10px 12px 40px; display: grid; gap: 8px; max-width: 640px; margin: 0 auto; }
+  .card {
+    background: #fff; border-radius: 12px; padding: 12px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+  }
+  .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .name { font-weight: 700; font-size: 15px; }
+  .dist { font-size: 13px; color: #666; white-space: nowrap; }
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; margin: 6px 0; }
+  .badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px;
+    background: #eef0f3; color: #444;
+  }
+  .badge.b24 { background: #d1fae5; color: #047857; font-weight: 600; }
+  .badge.free { background: #dbeafe; color: #1d4ed8; font-weight: 600; }
+  .badge.customers { background: #fef3c7; color: #92400e; }
+  .fee { font-size: 14px; margin: 4px 0 8px; }
+  .fee.has { color: #0d4fb0; font-weight: 700; }
+  .fee.unknown { color: #999; font-size: 13px; }
+  .card a {
+    font-size: 13px; color: #1668dc; text-decoration: none; font-weight: 600;
+  }
+  .empty { text-align: center; color: #888; padding: 30px 10px; font-size: 14px; }
+  .spinner {
+    display: inline-block; width: 12px; height: 12px; margin-right: 6px;
+    border: 2px solid #ccc; border-top-color: #1668dc; border-radius: 50%;
+    animation: spin .8s linear infinite; vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🅿️ パーキングさがす</h1>
+  <div class="searchrow">
+    <input id="placeInput" type="search" placeholder="駅名・住所で検索（例: 渋谷駅）">
+    <button id="searchBtn">検索</button>
+  </div>
+  <div class="controls">
+    <button id="locateBtn">📍 現在地から探す</button>
+    <select id="radius">
+      <option value="300">半径300m</option>
+      <option value="500" selected>半径500m</option>
+      <option value="1000">半径1km</option>
+      <option value="2000">半径2km</option>
+    </select>
+    <label class="chip"><input type="checkbox" id="only24">24時間出庫可のみ</label>
+    <label class="chip"><input type="checkbox" id="onlyFee">料金情報ありのみ</label>
+  </div>
+</header>
+<div id="map"></div>
+<div id="status">地図をタップするとその場所で再検索します</div>
+<main id="list"></main>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const FALLBACK = { lat: 35.681236, lon: 139.767125, label: '東京駅' };
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+const FETCH_TIMEOUT_MS = 15000;
+const MAX_RESULTS = 80;
+
+let map, centerMarker, resultLayer;
+let spots = [];
+// 検索や地図タップで手動指定した後は、遅れて届いた現在地取得の結果で上書きしない
+let userPicked = false;
+
+function setStatus(html, notice = false) {
+  const el = document.getElementById('status');
+  el.innerHTML = html;
+  el.className = notice ? 'notice' : '';
+}
+
+function initMap() {
+  map = L.map('map').setView([FALLBACK.lat, FALLBACK.lon], 16);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
+  }).addTo(map);
+  resultLayer = L.layerGroup().addTo(map);
+  centerMarker = L.marker([FALLBACK.lat, FALLBACK.lon], { draggable: true }).addTo(map);
+  centerMarker.bindPopup('この場所の周辺を検索中');
+  centerMarker.on('dragend', () => { userPicked = true; search(); });
+  map.on('click', (e) => { userPicked = true; centerMarker.setLatLng(e.latlng); search(); });
+}
+
+function locate() {
+  userPicked = false;
+  setStatus('<span class="spinner"></span>現在地を取得中…');
+  if (!navigator.geolocation) {
+    useFallback('この端末では位置情報が使えないため');
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      if (userPicked) return;
+      const ll = [pos.coords.latitude, pos.coords.longitude];
+      centerMarker.setLatLng(ll);
+      map.setView(ll, 16);
+      search();
+    },
+    (err) => {
+      if (userPicked) return;
+      useFallback(err && err.code === 1
+        ? '位置情報がブロックされています。アドレスバーの🔒アイコン→位置情報を「許可」にしてください'
+        : '位置情報が取得できませんでした');
+    },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+  );
+}
+
+function useFallback(reason) {
+  centerMarker.setLatLng([FALLBACK.lat, FALLBACK.lon]);
+  map.setView([FALLBACK.lat, FALLBACK.lon], 16);
+  setStatus(`${reason}。上の検索ボックスか地図タップでも場所を指定できます（今は${FALLBACK.label}周辺）`, true);
+  search(true);
+}
+
+async function searchPlace() {
+  const q = document.getElementById('placeInput').value.trim();
+  if (!q) return;
+  userPicked = true;
+  setStatus(`<span class="spinner"></span>「${escapeHtml(q)}」を検索中…`);
+  try {
+    const res = await fetch(
+      'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=jp&accept-language=ja&q='
+      + encodeURIComponent(q));
+    const results = await res.json();
+    if (!results.length) {
+      setStatus(`「${escapeHtml(q)}」が見つかりませんでした。駅名や住所で試してください`, true);
+      return;
+    }
+    const lat = Number(results[0].lat), lon = Number(results[0].lon);
+    centerMarker.setLatLng([lat, lon]);
+    map.setView([lat, lon], 16);
+    search();
+  } catch (e) {
+    setStatus('場所の検索に失敗しました。少し待ってから再度お試しください', true);
+  }
+}
+
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371000, rad = Math.PI / 180;
+  const dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+async function fetchOverpass(query) {
+  let lastErr;
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        body: 'data=' + encodeURIComponent(query),
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
+
+function is24h(t) {
+  return (t.opening_hours || '').replace(/\s/g, '') === '24/7';
+}
+
+function feeInfo(t) {
+  if (t.charge) return { text: t.charge, cls: 'has' };
+  if (t.fee === 'no') return { text: '無料', cls: 'has' };
+  if (t.fee === 'yes') return { text: '有料（料金の詳細は未登録）', cls: 'unknown' };
+  return { text: '料金情報なし', cls: 'unknown' };
+}
+
+function hasFeeInfo(t) {
+  return Boolean(t.charge) || t.fee === 'no';
+}
+
+async function search(keepStatus = false) {
+  const { lat, lng } = centerMarker.getLatLng();
+  const radius = document.getElementById('radius').value;
+  if (!keepStatus) setStatus('<span class="spinner"></span>周辺の駐車場を検索中…');
+
+  const query = `[out:json][timeout:14];
+(
+  node["amenity"="parking"](around:${radius},${lat},${lng});
+  way["amenity"="parking"](around:${radius},${lat},${lng});
+);
+out center tags;`;
+
+  try {
+    const data = await fetchOverpass(query);
+    spots = data.elements
+      .map((el) => {
+        const p = el.center || el;
+        return { lat: p.lat, lon: p.lon, tags: el.tags || {}, dist: haversine(lat, lng, p.lat, p.lon) };
+      })
+      .filter((s) => !['private', 'no'].includes(s.tags.access))
+      .sort((a, b) => a.dist - b.dist)
+      .slice(0, MAX_RESULTS);
+    render();
+  } catch (e) {
+    setStatus('検索に失敗しました。少し待ってから地図をタップして再検索してください（下の一覧は前回の検索結果です）', true);
+  }
+}
+
+function render() {
+  const only24 = document.getElementById('only24').checked;
+  const onlyFee = document.getElementById('onlyFee').checked;
+  const shown = spots.filter((s) =>
+    (!only24 || is24h(s.tags)) && (!onlyFee || hasFeeInfo(s.tags)));
+
+  resultLayer.clearLayers();
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+
+  const radius = document.getElementById('radius').selectedOptions[0].text;
+  setStatus(`${shown.length}件見つかりました（${radius}・近い順）`);
+
+  if (!shown.length) {
+    list.innerHTML = '<div class="empty">条件に合う駐車場が見つかりませんでした。<br>半径を広げるか、フィルタを外してみてください</div>';
+    return;
+  }
+
+  for (const s of shown) {
+    const t = s.tags;
+    const name = t['name:ja'] || t.name || (t.operator ? `${t.operator}の駐車場` : '駐車場（名称未登録）');
+    const fee = feeInfo(t);
+    const distText = s.dist < 1000 ? `${Math.round(s.dist)}m` : `${(s.dist / 1000).toFixed(1)}km`;
+
+    const badges = [];
+    if (is24h(t)) badges.push('<span class="badge b24">24時間出庫可</span>');
+    else if (t.opening_hours) badges.push(`<span class="badge">営業: ${escapeHtml(t.opening_hours)}</span>`);
+    if (t.fee === 'no') badges.push('<span class="badge free">無料</span>');
+    if (t.access === 'customers') badges.push('<span class="badge customers">施設利用者向け</span>');
+    if (t.capacity) badges.push(`<span class="badge">収容 ${escapeHtml(t.capacity)}台</span>`);
+    if (t.operator) badges.push(`<span class="badge">${escapeHtml(t.operator)}</span>`);
+
+    const gmap = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="row1"><span class="name">${escapeHtml(name)}</span><span class="dist">${distText}</span></div>
+      <div class="badges">${badges.join('')}</div>
+      <div class="fee ${fee.cls}">${escapeHtml(fee.text)}</div>
+      <a href="${gmap}" target="_blank" rel="noopener">Googleマップで経路を見る →</a>`;
+    list.appendChild(card);
+
+    L.marker([s.lat, s.lon]).addTo(resultLayer)
+      .bindPopup(`<b>${escapeHtml(name)}</b><br>${escapeHtml(fee.text)}`);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+document.getElementById('locateBtn').addEventListener('click', locate);
+document.getElementById('searchBtn').addEventListener('click', searchPlace);
+document.getElementById('placeInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') searchPlace();
+});
+document.getElementById('radius').addEventListener('change', () => search());
+document.getElementById('only24').addEventListener('change', render);
+document.getElementById('onlyFee').addEventListener('change', render);
+
+initMap();
+locate();
+</script>
+</body>
+</html>
